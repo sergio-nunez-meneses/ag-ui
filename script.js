@@ -11,14 +11,20 @@ let soundFilesDragOver = false;
 //  Functions
 // ============================================================================
 function scanFiles(item) {
+	let dt = new DataTransfer();
+
 	if (item.isDirectory) {
 		item.createReader().readEntries((entries) => {
-			console.log(`Uploaded files: ${entries.length}`);
-
-			entries.forEach((entry) => {
-				scanFiles(entry);
-			});
+			if (entries.length > 0) {
+				for (let entry of entries) {
+					entry.file((file) => {
+						dt.items.add(file);
+					})
+				}
+			}
 		});
+
+		return dt.files;
 	}
 }
 
@@ -43,12 +49,9 @@ document.querySelector(".drop-zone").addEventListener("drop", (e) => {
 
 	console.log(`Dropped ${e.target.id}:`);
 
-	// If corpus ?
-	for (let item of e.dataTransfer.items) {
-		if (item.webkitGetAsEntry()) {
-			scanFiles(item.webkitGetAsEntry());
-		}
+	for (item of e.dataTransfer.items) {
+		console.log(await scanFiles(item.webkitGetAsEntry()));
 	}
-
+	
 	soundFilesDragOver = false;
 })
