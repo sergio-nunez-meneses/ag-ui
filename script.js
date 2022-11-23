@@ -6,7 +6,6 @@
 //  Variables
 // ============================================================================
 let soundFilesDragOver = false;
-let dataTransferIsValid = true;
 
 // ============================================================================
 //  Functions
@@ -73,19 +72,40 @@ function checkTargetSoundFileUpload(e) {
 	if (uploadedFiles.files.length > 1) {
 		errors.push("Please, upload just one file.");
 	}
-
 	if (uploadedFiles.files[0].type.split('/')[0] !== "audio") {
 		errors.push("Please, upload just audio files.");
 	}
 
-	if (e.type === "change") {
-		uploadedFiles.value = "";
-	}
-	else {
-		dataTransferIsValid = false;
-	}
-
 	return errors;
+}
+
+async function previewUploadedSoundFiles(soundFiles) {
+	document.getElementById("preview-target").innerHTML = '';
+
+	for (const soundFile of soundFiles) {
+		const base64Audio = await audioToBase64(soundFile);
+
+		document.getElementById("preview-target").appendChild(
+			previewAudio(soundFile.name, base64Audio)
+		);
+	}
+}
+
+function audioToBase64(soundFile) {
+	return new Promise((resolve, reject) => {
+		let reader = new FileReader();
+		reader.onloadend = (e) => { resolve(e.target.result); };
+		reader.readAsDataURL(soundFile);
+	});
+}
+
+function previewAudio(fileName, base64Audio) {
+	const audio = document.createElement("audio");
+	audio.id = fileName.split('.')[0];
+	audio.src = base64Audio;
+	audio.controls = true;
+
+	return audio;
 }
 
 // ============================================================================
@@ -116,11 +136,13 @@ document.querySelector(".drop-zone").addEventListener("drop", async (e) => {
 		return;
 	}
 
-	console.log(await getFiles(e.dataTransfer));
+	await previewUploadedSoundFiles(e.dataTransfer.files);
+
+	//console.log(await getFiles(e.dataTransfer));
 
 	soundFilesDragOver = false;
 })
-document.querySelector(".upload-input").addEventListener("change", (e) => {
+document.querySelector(".upload-input").addEventListener("change", async (e) => {
 	let errors = checkTargetSoundFileUpload(e);
 
 	if (errors.length > 0) {
@@ -129,4 +151,6 @@ document.querySelector(".upload-input").addEventListener("change", (e) => {
 		}
 		return;
 	}
+
+	await previewUploadedSoundFiles(e.target.files);
 })
