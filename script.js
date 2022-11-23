@@ -6,6 +6,7 @@
 //  Variables
 // ============================================================================
 let soundFilesDragOver = false;
+let dataTransferIsValid = true;
 
 // ============================================================================
 //  Functions
@@ -66,15 +67,22 @@ function readEntryContent(entry) {
 }
 
 function checkTargetSoundFileUpload(e) {
-	const uploadedFiles = e.type === "change" ? e.target.files : e.dataTransfer.files;
+	let uploadedFiles = e.type === "change" ? e.target : e.dataTransfer;
 	const errors = [];
 
-	if (uploadedFiles.length > 1) {
+	if (uploadedFiles.files.length > 1) {
 		errors.push("Please, upload just one file.");
 	}
 
-	if (uploadedFiles[0].type.split('/')[0] !== "audio") {
+	if (uploadedFiles.files[0].type.split('/')[0] !== "audio") {
 		errors.push("Please, upload just audio files.");
+	}
+
+	if (e.type === "change") {
+		uploadedFiles.value = "";
+	}
+	else {
+		dataTransferIsValid = false;
 	}
 
 	return errors;
@@ -109,7 +117,7 @@ document.querySelector(".drop-zone").addEventListener("drop", async (e) => {
 	}
 
 	console.log(await getFiles(e.dataTransfer));
-	
+
 	soundFilesDragOver = false;
 })
 document.querySelector(".upload-input").addEventListener("change", (e) => {
