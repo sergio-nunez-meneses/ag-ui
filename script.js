@@ -65,6 +65,21 @@ function readEntryContent(entry) {
     });
 }
 
+function checkTargetSoundFileUpload(e) {
+	const uploadedFiles = e.type === "change" ? e.target.files : e.dataTransfer.files;
+	const errors = [];
+
+	if (uploadedFiles.length > 1) {
+		errors.push("Please, upload just one file.");
+	}
+
+	if (uploadedFiles[0].type.split('/')[0] !== "audio") {
+		errors.push("Please, upload just audio files.");
+	}
+
+	return errors;
+}
+
 // ============================================================================
 //  Code to execute
 // ============================================================================
@@ -76,7 +91,7 @@ document.querySelector(".drop-zone").addEventListener("dragover", (e) => {
 	e.preventDefault();
 
 	if (!soundFilesDragOver) {
-		console.log(`Dragging ${e.target.id}`);
+		console.log(`Dragging ${e.target.id.split('-')[1]}`);
 
 		soundFilesDragOver = true;
 	}
@@ -84,8 +99,26 @@ document.querySelector(".drop-zone").addEventListener("dragover", (e) => {
 document.querySelector(".drop-zone").addEventListener("drop", async (e) => {
 	e.preventDefault();
 
-	console.log(`Dropped ${e.target.id}:`);
+	let errors = checkTargetSoundFileUpload(e);
+
+	if (errors.length > 0) {
+		for (const error of errors) {
+			console.error(error);
+		}
+		return;
+	}
+
 	console.log(await getFiles(e.dataTransfer));
 	
 	soundFilesDragOver = false;
+})
+document.querySelector(".upload-input").addEventListener("change", (e) => {
+	let errors = checkTargetSoundFileUpload(e);
+
+	if (errors.length > 0) {
+		for (const error of errors) {
+			console.error(error);
+		}
+		return;
+	}
 })
