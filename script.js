@@ -66,11 +66,13 @@ function readEntryContent(entry) {
 }
 
 function handleFileUpload(e) {
+	document.getElementById("errors").innerHTML = '';
+
 	const uploadedFiles = e.type === "change" ? e.target.files : e.dataTransfer.files;
-	const fileRole = e.target.closest("[id*=\"parameters\"]").id;
+	const fileRole = e.target.closest("[id*=\"parameters\"]").id.split('-')[0];
 	const errors = [];
 
-	if (fileRole.startsWith("target")) {
+	if (fileRole === "target") {
 		if (uploadedFiles.length > 1) {
 			errors.push("Please, upload just one target audio file.");
 		}
@@ -83,10 +85,7 @@ function handleFileUpload(e) {
 	}
 
 	if (errors.length > 0) {
-		for (const error of errors) {
-			// TODO: Create error list
-			console.error(error);
-		}
+		createErrorList(errors);
 
 		if (e.type === "change") {
 			e.target.value = '';
@@ -94,6 +93,18 @@ function handleFileUpload(e) {
 
 		return;
 	}
+}
+
+function createErrorList(errors) {
+	const list = document.createElement("ul");
+
+	for (const error of errors) {
+		const item = document.createElement("li");
+		item.innerText = error;
+		
+		list.appendChild(item);
+	}
+	document.getElementById("errors").appendChild(list);
 }
 
 async function previewUploadedSoundFiles(soundFiles) {
