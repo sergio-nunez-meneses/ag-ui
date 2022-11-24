@@ -65,7 +65,7 @@ function readEntryContent(entry) {
     });
 }
 
-function handleFileUpload(e) {
+async function handleFileUpload(e) {
 	document.getElementById("errors").innerHTML = '';
 
 	const uploadedFiles = e.type === "change" ? e.target.files : e.dataTransfer.files;
@@ -93,6 +93,8 @@ function handleFileUpload(e) {
 
 		return;
 	}
+
+	await createAudioPreview(uploadedFiles, fileRole);
 }
 
 function createErrorList(errors) {
@@ -107,33 +109,26 @@ function createErrorList(errors) {
 	document.getElementById("errors").appendChild(list);
 }
 
-async function previewUploadedSoundFiles(soundFiles) {
-	document.getElementById("preview-target").innerHTML = '';
+async function createAudioPreview(uploadedFiles, fileRole) {
+	document.getElementById(`preview-${fileRole}`).innerHTML = '';
 
-	for (const soundFile of soundFiles) {
-		const base64Audio = await audioToBase64(soundFile);
+	for (const uploadedFile of uploadedFiles) {
+		const base64Audio = await audioToBase64(uploadedFile);
+		const audio = document.createElement("audio");
+		audio.id = uploadedFile.name.split('.').shift();
+		audio.src = base64Audio;
+		audio.controls = true;
 
-		document.getElementById("preview-target").appendChild(
-			previewAudio(soundFile.name, base64Audio)
-		);
+		document.getElementById(`preview-${fileRole}`).appendChild(audio);
 	}
 }
 
-function audioToBase64(soundFile) {
+function audioToBase64(file) {
 	return new Promise((resolve, reject) => {
 		let reader = new FileReader();
-		reader.onloadend = (e) => { resolve(e.target.result); };
-		reader.readAsDataURL(soundFile);
+		reader.readAsDataURL(file);
+		reader.addEventListener("loadend", (e) => { resolve(e.target.result); })
 	});
-}
-
-function previewAudio(fileName, base64Audio) {
-	const audio = document.createElement("audio");
-	audio.id = fileName.split('.')[0];
-	audio.src = base64Audio;
-	audio.controls = true;
-
-	return audio;
 }
 
 // ============================================================================
@@ -154,16 +149,12 @@ document.querySelector(".drop-zone").addEventListener("dragover", (e) => {
 })
 document.querySelector(".drop-zone").addEventListener("drop", async (e) => {
 	e.preventDefault();
-	handleFileUpload(e);
-
-	//await previewUploadedSoundFiles(e.dataTransfer.files);
-
-	//console.log(await getFiles(e.dataTransfer));
+	await handleFileUpload(e);
 
 	soundFilesDragOver = false;
+
+	//console.log(await getFiles(e.dataTransfer));
 })
 document.querySelector(".upload-input").addEventListener("change", async (e) => {
-	handleFileUpload(e);
-
-	//await previewUploadedSoundFiles(e.target.files);
+	await handleFileUpload(e);
 })
