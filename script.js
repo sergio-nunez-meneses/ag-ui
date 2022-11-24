@@ -14,10 +14,6 @@ async function getFiles(dataTransfer) {
 	const files = [];
 
 	for (const item of dataTransfer.items) {
-		if (item.kind.split('/')[0] !== "audio") {
-			// End function execution
-		}
-
 		if (item.webkitGetAsEntry()) {
 			const entry = item.webkitGetAsEntry();
 			const entryContent = await readEntryContent(entry);
@@ -68,9 +64,25 @@ function readEntryContent(entry) {
 async function handleFileUpload(e) {
 	document.getElementById("errors").innerHTML = '';
 
-	const uploadedFiles = e.type === "change" ? e.target.files : e.dataTransfer.files;
-	const fileRole = e.target.closest("[id*=\"parameters\"]").id.split('-')[0];
+	const fileRole = e.target.closest("[id*=\"parameters\"]").id.split('-').shift();
 	const errors = [];
+	let uploadedFiles;
+
+	switch (e.type) {
+		case "change":
+			uploadedFiles = e.target.files;
+			break;
+		default:
+			const isFolder = [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))][0];
+
+			if (isFolder) {
+				uploadedFiles = await getFiles(e.dataTransfer); // TODO: Check file types on folder drop
+			}
+			else {
+				uploadedFiles = e.dataTransfer.files;
+			}
+			break;
+	}
 
 	if (fileRole === "target") {
 		if (uploadedFiles.length > 1) {
@@ -78,9 +90,9 @@ async function handleFileUpload(e) {
 		}
 	}
 
-	const isValidFileType = [...new Set([...uploadedFiles].map(uploadedFile => uploadedFile.type.startsWith("audio")))];
+	const isValidFileType = [...new Set([...uploadedFiles].map(uploadedFile => uploadedFile.type.startsWith("audio")))].shift();
 
-	if (isValidFileType.length > 0 && !isValidFileType[0]) {
+	if (!isValidFileType) {
 		errors.push("Please, upload files just of type audio.");
 	}
 
@@ -142,7 +154,7 @@ document.querySelector(".drop-zone").addEventListener("dragover", (e) => {
 	e.preventDefault();
 
 	if (!soundFilesDragOver) {
-		console.log(`Dragging ${e.target.id.split('-')[1]}`);
+		console.log(`Dragging ${e.target.id.split('-').pop()}`);
 
 		soundFilesDragOver = true;
 	}
@@ -152,8 +164,6 @@ document.querySelector(".drop-zone").addEventListener("drop", async (e) => {
 	await handleFileUpload(e);
 
 	soundFilesDragOver = false;
-
-	//console.log(await getFiles(e.dataTransfer));
 })
 document.querySelector(".upload-input").addEventListener("change", async (e) => {
 	await handleFileUpload(e);
