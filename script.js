@@ -65,18 +65,35 @@ function readEntryContent(entry) {
     });
 }
 
-function checkTargetSoundFileUpload(e) {
-	let uploadedFiles = e.type === "change" ? e.target : e.dataTransfer;
+function handleFileUpload(e) {
+	const uploadedFiles = e.type === "change" ? e.target.files : e.dataTransfer.files;
+	const fileRole = e.target.closest("[id*=\"parameters\"]").id;
 	const errors = [];
 
-	if (uploadedFiles.files.length > 1) {
-		errors.push("Please, upload just one file.");
-	}
-	if (uploadedFiles.files[0].type.split('/')[0] !== "audio") {
-		errors.push("Please, upload just audio files.");
+	if (fileRole.startsWith("target")) {
+		if (uploadedFiles.length > 1) {
+			errors.push("Please, upload just one target audio file.");
+		}
 	}
 
-	return errors;
+	const isValidFileType = [...new Set([...uploadedFiles].map(uploadedFile => uploadedFile.type.startsWith("audio")))];
+
+	if (isValidFileType.length > 0 && !isValidFileType[0]) {
+		errors.push("Please, upload files just of type audio.");
+	}
+
+	if (errors.length > 0) {
+		for (const error of errors) {
+			// TODO: Create error list
+			console.error(error);
+		}
+
+		if (e.type === "change") {
+			e.target.value = '';
+		}
+
+		return;
+	}
 }
 
 async function previewUploadedSoundFiles(soundFiles) {
@@ -126,31 +143,16 @@ document.querySelector(".drop-zone").addEventListener("dragover", (e) => {
 })
 document.querySelector(".drop-zone").addEventListener("drop", async (e) => {
 	e.preventDefault();
+	handleFileUpload(e);
 
-	let errors = checkTargetSoundFileUpload(e);
-
-	if (errors.length > 0) {
-		for (const error of errors) {
-			console.error(error);
-		}
-		return;
-	}
-
-	await previewUploadedSoundFiles(e.dataTransfer.files);
+	//await previewUploadedSoundFiles(e.dataTransfer.files);
 
 	//console.log(await getFiles(e.dataTransfer));
 
 	soundFilesDragOver = false;
 })
 document.querySelector(".upload-input").addEventListener("change", async (e) => {
-	let errors = checkTargetSoundFileUpload(e);
+	handleFileUpload(e);
 
-	if (errors.length > 0) {
-		for (const error of errors) {
-			console.error(error);
-		}
-		return;
-	}
-
-	await previewUploadedSoundFiles(e.target.files);
+	//await previewUploadedSoundFiles(e.target.files);
 })
