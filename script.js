@@ -10,10 +10,10 @@ let soundFilesDragOver = false;
 // ============================================================================
 //  Functions
 // ============================================================================
-async function getFiles(dataTransfer) {
+async function getFiles(items) {
 	let entryContent;
 
-	for (const item of dataTransfer.items) {
+	for (const item of items) {
 		if (item.webkitGetAsEntry()) {
 			const entry = item.webkitGetAsEntry();
 			entryContent = await readEntryContent(entry);
@@ -24,7 +24,7 @@ async function getFiles(dataTransfer) {
 
 function readEntryContent(entry) {
     return new Promise((resolve, reject) => {
-        const contents = new DataTransfer();
+        const files = new DataTransfer();
     	let counter = 0;
 
         readEntry(entry);
@@ -41,17 +41,17 @@ function readEntryContent(entry) {
 	        		}
 
 	        		if (counter === 0) {
-	        			resolve(contents);
+	        			resolve(files);
 	        		}
 	            });
         	}
             else {
             	entry.file(async (file) => {
             		counter--;
-            		contents.items.add(file);
+            		files.items.add(file);
 
             		if (counter === 0) {
-            			resolve(contents);
+            			resolve(files);
             		}
             	});
             }
@@ -71,10 +71,10 @@ async function handleFileUpload(e) {
 			uploadedFiles = e.target.files;
 			break;
 		default:
-			const isFolder = await [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))][0];
+			const isFolder = [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))].shift();
 
 			if (isFolder) {
-				uploadedFiles = await getFiles(e.dataTransfer);
+				uploadedFiles = await getFiles(e.dataTransfer.items);
 			}
 			else {
 				uploadedFiles = e.dataTransfer.files;
@@ -88,12 +88,7 @@ async function handleFileUpload(e) {
 		}
 	}
 
-	const isValidFileType = [...new Set([...uploadedFiles].map(async (uploadedFile) => {
-		const fileType = await getFileType(uploadedFile);
-		return fileType.startsWith("audio");
-	}))].shift();
-
-	if (!isValidFileType) {
+	if (!await isValidFileType(uploadedFiles)) {
 		errors.push("Please, upload files just of type audio.");
 	}
 
@@ -122,13 +117,13 @@ function createErrorList(errors) {
 	document.getElementById("errors").appendChild(list);
 }
 
-async function createAudioPreview(uploadedFiles, fileRole) {
+async function createAudioPreview(files, fileRole) {
 	document.getElementById(`preview-${fileRole}`).innerHTML = '';
 
-	for (const uploadedFile of uploadedFiles) {
-		const base64Audio = await audioToBase64(uploadedFile, "dataUrl");
+	for (const file of files) {
+		const base64Audio = await audioToBase64(file, "dataUrl");
 		const audio = document.createElement("audio");
-		audio.id = uploadedFile.name.split('.').shift();
+		audio.id = file.name.split('.').shift();
 		audio.src = base64Audio;
 		audio.controls = true;
 
@@ -162,11 +157,19 @@ async function getFileType(file) {
 	switch (header) {
 		case "52494646":
 			return "audio/wave";
-        case "464f524d":
-        	return "audio/aiff";
-        default:
-        	return "";
+		case "464f524d":
+			return "audio/aiff";
+		default:
+			return "";
 	}
+}
+
+async function isValidFileType(files) {
+	return await [...new Set([...files].map(async (file) => {
+			const fileType = await getFileType(file);
+			return fileType.startsWith("audio");
+		})
+	)].shift();
 }
 
 // ============================================================================
