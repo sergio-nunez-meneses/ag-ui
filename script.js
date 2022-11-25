@@ -48,8 +48,9 @@ function readEntryContent(entry) {
 	            });
         	}
             else {
-            	entry.file((file) => {
+            	entry.file(async (file) => {
             		counter--;
+            		file.type = await audioToBase64(file, "arrayBuffer"); // TODO: Remove line
             		contents.push(file);
 
             		if (counter === 0) {
@@ -76,7 +77,7 @@ async function handleFileUpload(e) {
 			const isFolder = [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))][0];
 
 			if (isFolder) {
-				uploadedFiles = await getFiles(e.dataTransfer); // TODO: Check file types on folder drop
+				uploadedFiles = await getFiles(e.dataTransfer);
 			}
 			else {
 				uploadedFiles = e.dataTransfer.files;
@@ -90,7 +91,7 @@ async function handleFileUpload(e) {
 		}
 	}
 
-	const isValidFileType = [...new Set([...uploadedFiles].map(uploadedFile => uploadedFile.type.startsWith("audio")))].shift();
+	const isValidFileType = [...new Set([...uploadedFiles].map(uploadedFile => uploadedFile.type.startsWith("audio")))].shift(); // TODO: Check file type
 
 	if (!isValidFileType) {
 		errors.push("Please, upload files just of type audio.");
@@ -125,7 +126,7 @@ async function createAudioPreview(uploadedFiles, fileRole) {
 	document.getElementById(`preview-${fileRole}`).innerHTML = '';
 
 	for (const uploadedFile of uploadedFiles) {
-		const base64Audio = await audioToBase64(uploadedFile);
+		const base64Audio = await audioToBase64(uploadedFile, "dataUrl");
 		const audio = document.createElement("audio");
 		audio.id = uploadedFile.name.split('.').shift();
 		audio.src = base64Audio;
@@ -135,12 +136,41 @@ async function createAudioPreview(uploadedFiles, fileRole) {
 	}
 }
 
-function audioToBase64(file) {
+function audioToBase64(file, readerMethod) {
 	return new Promise((resolve, reject) => {
 		let reader = new FileReader();
-		reader.readAsDataURL(file);
-		reader.addEventListener("loadend", (e) => { resolve(e.target.result); })
+
+		if (readerMethod === "dataUrl") {
+			reader.readAsDataUrl(file);
+		}
+		else {
+			reader.readAsArrayBuffer(file);
+		}
+
+		reader.addEventListener("loadend", (e) => {
+			if (readerMethod === "arrayBuffer") {
+				resolve(getFileType(e.target.result));
+			}
+			resolve(e.target.result);
+		})
 	});
+}
+
+function getFileType(arrayBuffer) {
+	let header = "";
+
+	for (const bytes of new Uint8Array(arrayBuffer).slice(0, 4)) {
+		header += bytes.toString(16);
+	}
+
+	switch (header) {
+		case "52494646":
+			return "audio/wave";
+        case "464f524d":
+        	return "audio/aiff";
+        default:
+        	return "";
+	}
 }
 
 // ============================================================================
