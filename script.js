@@ -11,22 +11,20 @@ let soundFilesDragOver = false;
 //  Functions
 // ============================================================================
 async function getFiles(dataTransfer) {
-	const files = [];
+	let entryContent;
 
 	for (const item of dataTransfer.items) {
 		if (item.webkitGetAsEntry()) {
 			const entry = item.webkitGetAsEntry();
-			const entryContent = await readEntryContent(entry);
-
-			files.push(...entryContent);
+			entryContent = await readEntryContent(entry);
 		}
 	}
-	return files;
+	return entryContent.files;
 }
 
 function readEntryContent(entry) {
     return new Promise((resolve, reject) => {
-        const contents = [];
+        const contents = new DataTransfer();
     	let counter = 0;
 
         readEntry(entry);
@@ -50,8 +48,7 @@ function readEntryContent(entry) {
             else {
             	entry.file(async (file) => {
             		counter--;
-            		file.type = await audioToBase64(file, "arrayBuffer"); // TODO: Remove line
-            		contents.push(file);
+            		contents.items.add(file);
 
             		if (counter === 0) {
             			resolve(contents);
@@ -74,7 +71,7 @@ async function handleFileUpload(e) {
 			uploadedFiles = e.target.files;
 			break;
 		default:
-			const isFolder = [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))][0];
+			const isFolder = await [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))][0];
 
 			if (isFolder) {
 				uploadedFiles = await getFiles(e.dataTransfer);
@@ -91,7 +88,10 @@ async function handleFileUpload(e) {
 		}
 	}
 
-	const isValidFileType = [...new Set([...uploadedFiles].map(uploadedFile => uploadedFile.type.startsWith("audio")))].shift(); // TODO: Check file type
+	const isValidFileType = [...new Set([...uploadedFiles].map(async (uploadedFile) => {
+		const fileType = await getFileType(uploadedFile);
+		return fileType.startsWith("audio");
+	}))].shift();
 
 	if (!isValidFileType) {
 		errors.push("Please, upload files just of type audio.");
@@ -141,22 +141,18 @@ function audioToBase64(file, readerMethod) {
 		let reader = new FileReader();
 
 		if (readerMethod === "dataUrl") {
-			reader.readAsDataUrl(file);
+			reader.readAsDataURL(file);
 		}
 		else {
 			reader.readAsArrayBuffer(file);
 		}
 
-		reader.addEventListener("loadend", (e) => {
-			if (readerMethod === "arrayBuffer") {
-				resolve(getFileType(e.target.result));
-			}
-			resolve(e.target.result);
-		})
+		reader.addEventListener("loadend", (e) => { resolve(e.target.result); })
 	});
 }
 
-function getFileType(arrayBuffer) {
+async function getFileType(file) {
+	const arrayBuffer = await audioToBase64(file, "arrayBuffer");
 	let header = "";
 
 	for (const bytes of new Uint8Array(arrayBuffer).slice(0, 4)) {
