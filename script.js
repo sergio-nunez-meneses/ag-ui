@@ -10,6 +10,54 @@ let soundFilesDragOver = false;
 // ============================================================================
 //  Functions
 // ============================================================================
+async function handleFileUpload(e) {
+	document.getElementById("errors").innerHTML = '';
+
+	const fileRole = e.target.closest("[id*=\"parameters\"]").id.split('-').shift();
+	const errors = [];
+	let uploadedFiles;
+
+	switch (e.type) {
+		case "change":
+			uploadedFiles = e.target.files;
+			break;
+		default:
+			const isFolder = [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))].shift();
+
+			if (isFolder) {
+				uploadedFiles = await getFiles(e.dataTransfer.items);
+			}
+			else {
+				uploadedFiles = e.dataTransfer.files;
+			}
+			break;
+	}
+
+	if (fileRole === "target") {
+		if (uploadedFiles.length > 1) {
+			errors.push("Please, upload just one target audio file.");
+		}
+	}
+
+	if (!await isValidFileType(uploadedFiles)) {
+		errors.push("Please, upload files just of type audio.");
+	}
+
+	if (errors.length > 0) {
+		createErrorList(errors);
+
+		if (e.type === "change") {
+			e.target.value = '';
+		}
+
+		return;
+	}
+
+	await createAudioPreview(uploadedFiles, fileRole);
+
+	console.log(setFilePath(uploadedFiles[0], fileRole));
+}
+
 async function getFiles(items) {
 	let entryContent;
 
@@ -59,50 +107,30 @@ function readEntryContent(entry) {
     });
 }
 
-async function handleFileUpload(e) {
-	document.getElementById("errors").innerHTML = '';
+async function isValidFileType(files) {
+	return await [...new Set([...files].map(async (file) => {
+			const fileType = await getFileType(file);
+			return fileType.startsWith("audio");
+		})
+	)].shift();
+}
 
-	const fileRole = e.target.closest("[id*=\"parameters\"]").id.split('-').shift();
-	const errors = [];
-	let uploadedFiles;
+async function getFileType(file) {
+	const arrayBuffer = await audioToBase64(file, "arrayBuffer");
+	let header = "";
 
-	switch (e.type) {
-		case "change":
-			uploadedFiles = e.target.files;
-			break;
+	for (const bytes of new Uint8Array(arrayBuffer).slice(0, 4)) {
+		header += bytes.toString(16);
+	}
+
+	switch (header) {
+		case "52494646":
+			return "audio/wave";
+		case "464f524d":
+			return "audio/aiff";
 		default:
-			const isFolder = [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))].shift();
-
-			if (isFolder) {
-				uploadedFiles = await getFiles(e.dataTransfer.items);
-			}
-			else {
-				uploadedFiles = e.dataTransfer.files;
-			}
-			break;
+			return "";
 	}
-
-	if (fileRole === "target") {
-		if (uploadedFiles.length > 1) {
-			errors.push("Please, upload just one target audio file.");
-		}
-	}
-
-	if (!await isValidFileType(uploadedFiles)) {
-		errors.push("Please, upload files just of type audio.");
-	}
-
-	if (errors.length > 0) {
-		createErrorList(errors);
-
-		if (e.type === "change") {
-			e.target.value = '';
-		}
-
-		return;
-	}
-
-	await createAudioPreview(uploadedFiles, fileRole);
 }
 
 function createErrorList(errors) {
@@ -141,35 +169,15 @@ function audioToBase64(file, readerMethod) {
 		else {
 			reader.readAsArrayBuffer(file);
 		}
-
 		reader.addEventListener("loadend", (e) => { resolve(e.target.result); })
 	});
 }
 
-async function getFileType(file) {
-	const arrayBuffer = await audioToBase64(file, "arrayBuffer");
-	let header = "";
+function setFilePath(file, fileRole) {
+	const isFileOrFolder = fileRole === "target" ? "file" : "folder";
+	const fileOrFolderName = fileRole === "target" ? file.name : file.webkitRelativePath.split('/').shift();
 
-	for (const bytes of new Uint8Array(arrayBuffer).slice(0, 4)) {
-		header += bytes.toString(16);
-	}
-
-	switch (header) {
-		case "52494646":
-			return "audio/wave";
-		case "464f524d":
-			return "audio/aiff";
-		default:
-			return "";
-	}
-}
-
-async function isValidFileType(files) {
-	return await [...new Set([...files].map(async (file) => {
-			const fileType = await getFileType(file);
-			return fileType.startsWith("audio");
-		})
-	)].shift();
+	return `{Add full path to ${isFileOrFolder}}/${fileOrFolderName}`;
 }
 
 // ============================================================================
