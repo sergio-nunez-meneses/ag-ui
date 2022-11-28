@@ -41,7 +41,7 @@ async function handleFileUpload(e) {
 
 	await createAudioPreview(uploadedFiles, fileRole);
 
-	createFilePathPreview(setFilePath(uploadedFiles[0], fileRole), fileRole);
+	createFilePathPreview(uploadedFiles[0], fileRole);
 }
 
 async function getFiles(e) {
@@ -173,9 +173,10 @@ function audioToBase64(file, readerMethod) {
 	});
 }
 
-function createFilePathPreview(fileInfo, fileRole) {
+function createFilePathPreview(file, fileRole) {
 	document.getElementById(`${fileRole}-inputs`).innerHTML = '';
 
+	const fileInfo = setFilePath(file, fileRole);
 	const input = document.createElement("input");
 	input.type = "text";
 	input.name = `${fileRole}-path`;
