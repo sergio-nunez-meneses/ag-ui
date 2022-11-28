@@ -174,10 +174,23 @@ function audioToBase64(file, readerMethod) {
 }
 
 function setFilePath(file, fileRole) {
-	const isFileOrFolder = fileRole === "target" ? "file" : "folder";
-	const fileOrFolderName = fileRole === "target" ? file.name : file.webkitRelativePath.split('/').shift();
+	let fileKind, fileName;
 
-	return `{Add full path to ${isFileOrFolder}}/${fileOrFolderName}`;
+	switch (fileRole) {
+		case "target":
+			fileKind = "file";
+			fileName = file.name;
+			break;
+		default:
+			fileKind = "folder";
+			fileName = file.webkitRelativePath !== "" ? file.webkitRelativePath.split('/').shift() : "{Folder name}";
+			break;
+	}
+
+	return {
+		kind: fileKind,
+		name: fileName,
+	}
 }
 
 // ============================================================================
