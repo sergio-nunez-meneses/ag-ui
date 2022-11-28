@@ -14,8 +14,10 @@ async function handleFileUpload(e) {
 	e.preventDefault();
 
 	const fileRole = e.target.closest("[id*=\"parameters\"]").id.split('-').shift();
+	const uploadedFiles = await getFiles(e);
 	const errors = [];
-	let uploadedFiles = await getFiles(e);
+
+	document.getElementById("errors").innerHTML = '';
 
 	if (fileRole === "target") {
 		if (uploadedFiles.length > 1) {
@@ -39,7 +41,7 @@ async function handleFileUpload(e) {
 
 	await createAudioPreview(uploadedFiles, fileRole);
 
-	console.log(setFilePath(uploadedFiles[0], fileRole));
+	createFilePathPreview(setFilePath(uploadedFiles[0], fileRole), fileRole);
 }
 
 async function getFiles(e) {
@@ -132,8 +134,6 @@ async function getFileType(file) {
 }
 
 function createErrorList(errors) {
-	document.getElementById("errors").innerHTML = '';
-
 	const list = document.createElement("ul");
 
 	for (const error of errors) {
@@ -173,6 +173,18 @@ function audioToBase64(file, readerMethod) {
 	});
 }
 
+function createFilePathPreview(fileInfo, fileRole) {
+	document.getElementById(`${fileRole}-inputs`).innerHTML = '';
+
+	const input = document.createElement("input");
+	input.type = "text";
+	input.name = `${fileRole}-path`;
+	input.value = `{Add full path to ${fileInfo.kind}}/${fileInfo.name}`;
+	input.onchange = (e) => { console.log(e.target.value); };
+
+	document.getElementById(`${fileRole}-inputs`).appendChild(input);
+}
+
 function setFilePath(file, fileRole) {
 	let fileKind, fileName;
 
@@ -183,7 +195,7 @@ function setFilePath(file, fileRole) {
 			break;
 		default:
 			fileKind = "folder";
-			fileName = file.webkitRelativePath !== "" ? file.webkitRelativePath.split('/').shift() : "{Folder name}";
+			fileName = file.webkitRelativePath !== "" ? file.webkitRelativePath.split('/').shift() : "{Add folder name}";
 			break;
 	}
 
