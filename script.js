@@ -11,27 +11,11 @@ let soundFilesDragOver = false;
 //  Functions
 // ============================================================================
 async function handleFileUpload(e) {
-	document.getElementById("errors").innerHTML = '';
+	e.preventDefault();
 
 	const fileRole = e.target.closest("[id*=\"parameters\"]").id.split('-').shift();
 	const errors = [];
-	let uploadedFiles;
-
-	switch (e.type) {
-		case "change":
-			uploadedFiles = e.target.files;
-			break;
-		default:
-			const isFolder = [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))].shift();
-
-			if (isFolder) {
-				uploadedFiles = await getFiles(e.dataTransfer.items);
-			}
-			else {
-				uploadedFiles = e.dataTransfer.files;
-			}
-			break;
-	}
+	let uploadedFiles = await getFiles(e);
 
 	if (fileRole === "target") {
 		if (uploadedFiles.length > 1) {
@@ -58,7 +42,21 @@ async function handleFileUpload(e) {
 	console.log(setFilePath(uploadedFiles[0], fileRole));
 }
 
-async function getFiles(items) {
+async function getFiles(e) {
+	switch (e.type) {
+		case "change":
+			return e.target.files;
+		default:
+			const isFolder = [...new Set([...e.dataTransfer.files].map(uploadedFile => uploadedFile.size === 0))].shift();
+
+			if (isFolder) {
+				return await getFilesFromFolder(e.dataTransfer.items);
+			}
+			return e.dataTransfer.files;
+	}
+}
+
+async function getFilesFromFolder(items) {
 	let entryContent;
 
 	for (const item of items) {
@@ -73,7 +71,7 @@ async function getFiles(items) {
 function readEntryContent(entry) {
     return new Promise((resolve, reject) => {
         const files = new DataTransfer();
-    	let counter = 0;
+        let counter = 0;
 
         readEntry(entry);
 
@@ -125,15 +123,17 @@ async function getFileType(file) {
 
 	switch (header) {
 		case "52494646":
-			return "audio/wave";
+			return "audio/x-wav";
 		case "464f524d":
-			return "audio/aiff";
+			return "audio/x-aiff";
 		default:
 			return "";
 	}
 }
 
 function createErrorList(errors) {
+	document.getElementById("errors").innerHTML = '';
+
 	const list = document.createElement("ul");
 
 	for (const error of errors) {
@@ -197,7 +197,6 @@ document.querySelector(".drop-zone").addEventListener("dragover", (e) => {
 	}
 })
 document.querySelector(".drop-zone").addEventListener("drop", async (e) => {
-	e.preventDefault();
 	await handleFileUpload(e);
 
 	soundFilesDragOver = false;
