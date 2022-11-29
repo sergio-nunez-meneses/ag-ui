@@ -146,8 +146,7 @@ function createErrorList(errors, fileRole) {
 }
 
 async function createAudioPreview(files, fileRole) {
-	const audioPreviewContainer = document.getElementById(`${fileRole}-preview`);
-	audioPreviewContainer.innerHTML = '';
+	document.getElementById(`${fileRole}-preview`).innerHTML = '';
 
 	for (const file of files) {
 		const base64Audio = await audioToBase64(file, "dataUrl");
@@ -156,7 +155,7 @@ async function createAudioPreview(files, fileRole) {
 		audio.src = base64Audio;
 		audio.controls = true;
 
-		audioPreviewContainer.appendChild(audio);
+		document.getElementById(`${fileRole}-preview`).appendChild(audio);
 	}
 }
 
@@ -203,8 +202,8 @@ function getFileInfo(file, fileRole) {
 		kind: fileKind,
 		name: fileName,
 	}
-}
 
+}
 // ============================================================================
 //  Code to execute
 // ============================================================================
@@ -226,4 +225,39 @@ document.querySelectorAll(".drop-zone")[0].addEventListener("drop", async (e) =>
 })
 document.getElementsByName("upload-file")[0].addEventListener("change", async (e) => {
 	await handleFileUpload(e);
+})
+document.getElementsByName("amplitude")[0].addEventListener("input", (e) => {
+	const amplitude = parseFloat(e.target.value);
+	const errors = [];
+
+	if (isNaN(amplitude)) {
+		errors.push("Please, amplitude value must be a number.");
+	}
+	if (amplitude < -70 || amplitude > 6) {
+		errors.push("Please, enter a value between -70 and 6.");
+	}
+
+	if (errors.length > 0) {
+		const errorsExist = document.getElementById("target-errors").childElementCount > 0;
+		const existingErrors =  errorsExist ? [...document.getElementById("target-errors").children[0].children].map(error => error.innerText) : [];
+		const list = errorsExist ? document.getElementById("target-errors").firstElementChild : document.createElement("ul");
+		let displayErrors = false;
+
+		for (const error of errors) {
+			if (!existingErrors.includes(error)) {
+				const item = document.createElement("li");
+				item.innerText = error;
+				displayErrors = true;
+
+				list.appendChild(item);
+			}
+		}
+
+		if (displayErrors) {
+			document.getElementById("target-errors").appendChild(list);
+		}
+
+		return;
+	}
+	document.getElementById("target-errors").innerHTML = '';
 })
