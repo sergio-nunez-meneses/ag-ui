@@ -8,14 +8,18 @@
 </head>
 <body>
 	<div>
-		<div id="errors"></div>
-		<div id="target-parameters">
-			<div id="drop-target" class="drop-zone">
-				<input class="upload-input" type="file" name="upload-target">
+		<div id="target-container">
+			<div id="target-errors"></div>
+			<div class="file-container">
+				<div class="drop-zone">
+					<input type="file" name="upload-file">
+				</div>
+				<div id="target-preview"></div>
 			</div>
-			<div id="preview-target"></div>
+			<div id="target-parameters">
+				<input type="text" name="target-path" class="hidden">
+			</div>
 		</div>
-		<div id="target-inputs"></div>
 	</div>
 
 	<script type="text/javascript" src="script.js"></script>
