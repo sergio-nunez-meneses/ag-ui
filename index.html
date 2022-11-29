@@ -9,16 +9,18 @@
 <body>
 	<div>
 		<div id="target-container">
-			<div id="target-errors"></div>
 			<div class="file-container">
 				<div class="drop-zone">
 					<input type="file" name="upload-file">
 				</div>
+				<div id="target-file-errors"></div>
 				<div id="target-preview"></div>
 			</div>
 			<div id="target-parameters">
 				<input type="text" name="target-path" class="hidden">
-				<input type="range" name="amplitude" min="-70" max="6" step="0.01" value="-24">
+				<div id="target-path-errors"></div>
+				<input type="range" name="amplitude" min="-120" max="24" step="0.01" value="-24">
+				<div id="target-amplitude-errors"></div>
 			</div>
 		</div>
 	</div>

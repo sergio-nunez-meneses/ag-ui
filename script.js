@@ -15,9 +15,8 @@ async function handleFileUpload(e) {
 
 	const fileRole = e.target.closest("[id*=\"container\"]").id.split('-').shift();
 	const uploadedFiles = await getFiles(e);
+	const errorContainerName = `${fileRole}-file`;
 	const errors = [];
-
-	document.getElementById(`${fileRole}-errors`).innerHTML = '';
 
 	if (fileRole === "target") {
 		if (uploadedFiles.length > 1) {
@@ -30,7 +29,7 @@ async function handleFileUpload(e) {
 	}
 
 	if (errors.length > 0) {
-		createErrorList(errors, fileRole);
+		createErrorList(errors, errorContainerName);
 
 		if (e.type === "change") {
 			e.target.value = '';
@@ -38,6 +37,7 @@ async function handleFileUpload(e) {
 
 		return;
 	}
+	document.getElementById(`${errorContainerName}-errors`).innerHTML = '';
 
 	await createAudioPreview(uploadedFiles, fileRole);
 
@@ -133,16 +133,26 @@ async function getFileType(file) {
 	}
 }
 
-function createErrorList(errors, fileRole) {
-	const list = document.createElement("ul");
+function createErrorList(errors, containerName) {
+	const errorContainer = document.getElementById(`${containerName}-errors`);
+	const errorsExist = errorContainer.childElementCount > 0;
+	const existingErrors =  errorsExist ? [...errorContainer.children[0].children].map(error => error.innerText) : [];
+	const list = errorsExist ? errorContainer.firstElementChild : document.createElement("ul");
+	let displayErrors = false;
 
 	for (const error of errors) {
-		const item = document.createElement("li");
-		item.innerText = error;
-		
-		list.appendChild(item);
+		if (!existingErrors.includes(error)) {
+			const item = document.createElement("li");
+			item.innerText = error;
+			displayErrors = true;
+
+			list.appendChild(item);
+		}
 	}
-	document.getElementById(`${fileRole}-errors`).appendChild(list);
+
+	if (displayErrors) {
+		errorContainer.appendChild(list);
+	}
 }
 
 async function createAudioPreview(files, fileRole) {
@@ -228,36 +238,20 @@ document.getElementsByName("upload-file")[0].addEventListener("change", async (e
 })
 document.getElementsByName("amplitude")[0].addEventListener("input", (e) => {
 	const amplitude = parseFloat(e.target.value);
+	const errorContainerName = "target-amplitude";
 	const errors = [];
 
 	if (isNaN(amplitude)) {
 		errors.push("Please, amplitude value must be a number.");
 	}
 	if (amplitude < -70 || amplitude > 6) {
-		errors.push("Please, enter a value between -70 and 6.");
+		errors.push("Please, amplitude value must be between -70 and 6.");
 	}
 
 	if (errors.length > 0) {
-		const errorsExist = document.getElementById("target-errors").childElementCount > 0;
-		const existingErrors =  errorsExist ? [...document.getElementById("target-errors").children[0].children].map(error => error.innerText) : [];
-		const list = errorsExist ? document.getElementById("target-errors").firstElementChild : document.createElement("ul");
-		let displayErrors = false;
-
-		for (const error of errors) {
-			if (!existingErrors.includes(error)) {
-				const item = document.createElement("li");
-				item.innerText = error;
-				displayErrors = true;
-
-				list.appendChild(item);
-			}
-		}
-
-		if (displayErrors) {
-			document.getElementById("target-errors").appendChild(list);
-		}
+		createErrorList(errors, errorContainerName);
 
 		return;
 	}
-	document.getElementById("target-errors").innerHTML = '';
+	document.getElementById(`${errorContainerName}-errors`).innerHTML = '';
 })
