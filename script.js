@@ -187,7 +187,6 @@ function displayFilePath(file, fileRole) {
 	const fileInfo = getFileInfo(file, fileRole);
 	const input = document.getElementsByName(`${fileRole}-path`)[0];
 	input.value = `{Add full path to ${fileInfo.kind}}/${fileInfo.name}`;
-	input.onchange = (e) => { console.log(e.target.value); };
 
 	if (input.classList.contains("hidden")) {
 		input.classList.remove("hidden");
@@ -214,6 +213,7 @@ function getFileInfo(file, fileRole) {
 	}
 
 }
+
 // ============================================================================
 //  Code to execute
 // ============================================================================
@@ -235,6 +235,23 @@ document.querySelectorAll(".drop-zone")[0].addEventListener("drop", async (e) =>
 })
 document.getElementsByName("upload-file")[0].addEventListener("change", async (e) => {
 	await handleFileUpload(e);
+})
+document.querySelector("[name*=\"path\"]").addEventListener("change", (e) => {
+	const role = e.target.closest("[id*=\"parameter\"]").id.split('-').shift();
+	const filePath = e.target.value;
+	const errorContainerName = `${role}-path`;
+	const errors = [];
+
+	if (filePath === "") {
+		errors.push("Please, file path can't be empty.");
+	}
+
+	if (errors.length > 0) {
+		createErrorList(errors, errorContainerName);
+
+		return;
+	}
+	document.getElementById(`${errorContainerName}-errors`).innerHTML = '';
 })
 document.getElementsByName("amplitude")[0].addEventListener("input", (e) => {
 	const amplitude = parseFloat(e.target.value);
