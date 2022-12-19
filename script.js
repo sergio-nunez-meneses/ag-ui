@@ -6,44 +6,11 @@
 //  Variables
 // ============================================================================
 let soundFilesDragOver = false;
+let uploadedFiles;
 
 // ============================================================================
 //  Functions
 // ============================================================================
-async function handleFileUpload(e) {
-	e.preventDefault();
-
-	const fileRole = e.target.closest("[id*=\"container\"]").id.split('-').shift();
-	const uploadedFiles = await getFiles(e);
-	const errorContainerName = `${fileRole}-file`;
-	const errors = [];
-
-	if (fileRole === "target") {
-		if (uploadedFiles.length > 1) {
-			errors.push("Please, upload just one target audio file.");
-		}
-	}
-
-	if (!await isValidFileType(uploadedFiles)) {
-		errors.push("Please, upload files just of type audio.");
-	}
-
-	if (errors.length > 0) {
-		createErrorList(errors, errorContainerName);
-
-		if (e.type === "change") {
-			e.target.value = '';
-		}
-
-		return;
-	}
-	document.getElementById(`${errorContainerName}-errors`).innerHTML = '';
-
-	await createAudioPreview(uploadedFiles, fileRole);
-
-	displayFilePath(uploadedFiles[0], fileRole);
-}
-
 async function getFiles(e) {
 	switch (e.type) {
 		case "change":
@@ -133,26 +100,18 @@ async function getFileType(file) {
 	}
 }
 
-function createErrorList(errors, containerName) {
-	const errorContainer = document.getElementById(`${containerName}-errors`);
-	const errorsExist = errorContainer.childElementCount > 0;
-	const existingErrors =  errorsExist ? [...errorContainer.children[0].children].map(error => error.innerText) : [];
-	const list = errorsExist ? errorContainer.firstElementChild : document.createElement("ul");
-	let displayErrors = false;
+function createErrorList(errors) {
+	document.getElementById(errors.containerName).innerHTML = '';
 
-	for (const error of errors) {
-		if (!existingErrors.includes(error)) {
-			const item = document.createElement("li");
-			item.innerText = error;
-			displayErrors = true;
+	const list = document.createElement("ul");
 
-			list.appendChild(item);
-		}
+	for (const error of errors.messages) {
+		const item = document.createElement("li");
+		item.innerText = error;
+
+		list.appendChild(item);
 	}
-
-	if (displayErrors) {
-		errorContainer.appendChild(list);
-	}
+	document.getElementById(errors.containerName).appendChild(list);
 }
 
 async function createAudioPreview(files, fileRole) {
@@ -214,6 +173,82 @@ function getFileInfo(file, fileRole) {
 
 }
 
+async function handleInputs(e) {
+	e.preventDefault();
+
+	const inputName = getInputName(e.target);
+	const parameter = inputName.split('-').pop();
+	const errors = {
+		containerName: `${inputName}-errors`,
+		messages: await window[`${parameter}Errors`](e),
+	}
+
+	if (errors.messages.length > 0) {
+		createErrorList(errors);
+
+		if (e.type === "change") {
+			e.target.value = '';
+		}
+
+		return;
+	}
+	document.getElementById(errors.containerName).innerHTML = '';
+
+	// Display value
+}
+
+async function fileErrors(e) {
+	const fileRole = getInputName(e.target).split('-').shift();
+	const errors = [];
+	uploadedFiles = await getFiles(e);
+
+	if (fileRole === "target") {
+		if (uploadedFiles.length > 1) {
+			errors.push("Please, upload just one target audio file.");
+		}
+	}
+
+	if (!await isValidFileType(uploadedFiles)) {
+		errors.push("Please, upload files just of type audio.");
+	}
+
+	return errors;
+
+	// await createAudioPreview(uploadedFiles, fileRole);
+
+	// displayFilePath(uploadedFiles[0], fileRole);
+}
+
+function pathErrors(e) {
+	const filePath = e.target.value;
+	const errors = [];
+
+	if (filePath === "") {
+		errors.push("Please, file path can't be empty.");
+	}
+	// TODO: Check for invalid characters
+
+	return errors;
+}
+
+function amplitudeErrors(e) {
+	const amplitude = parseFloat(e.target.value);
+	const errors = [];
+
+	if (isNaN(amplitude)) {
+		errors.push("Please, amplitude value must be a number.");
+	}
+	if (amplitude < -70 || amplitude > 6) {
+		errors.push("Please, amplitude value must be between -70 and 6.");
+	}
+
+	return errors;
+}
+
+function getInputName(input) {
+	return input.name ? input.name : input.id;
+}
+
 // ============================================================================
 //  Code to execute
 // ============================================================================
@@ -229,46 +264,16 @@ document.querySelectorAll(".drop-zone")[0].addEventListener("dragover", (e) => {
 	}
 })
 document.querySelectorAll(".drop-zone")[0].addEventListener("drop", async (e) => {
-	await handleFileUpload(e);
+	await handleInputs(e);
 
 	soundFilesDragOver = false;
 })
-document.getElementsByName("upload-file")[0].addEventListener("change", async (e) => {
-	await handleFileUpload(e);
+document.querySelectorAll("[name*=\"file\"]")[0].addEventListener("change", async (e) => {
+	await handleInputs(e);
 })
 document.querySelector("[name*=\"path\"]").addEventListener("change", (e) => {
-	const role = e.target.closest("[id*=\"parameter\"]").id.split('-').shift();
-	const filePath = e.target.value;
-	const errorContainerName = `${role}-path`;
-	const errors = [];
-
-	if (filePath === "") {
-		errors.push("Please, file path can't be empty.");
-	}
-
-	if (errors.length > 0) {
-		createErrorList(errors, errorContainerName);
-
-		return;
-	}
-	document.getElementById(`${errorContainerName}-errors`).innerHTML = '';
+	handleInputs(e);
 })
-document.getElementsByName("amplitude")[0].addEventListener("input", (e) => {
-	const amplitude = parseFloat(e.target.value);
-	const errorContainerName = "target-amplitude";
-	const errors = [];
-
-	if (isNaN(amplitude)) {
-		errors.push("Please, amplitude value must be a number.");
-	}
-	if (amplitude < -70 || amplitude > 6) {
-		errors.push("Please, amplitude value must be between -70 and 6.");
-	}
-
-	if (errors.length > 0) {
-		createErrorList(errors, errorContainerName);
-
-		return;
-	}
-	document.getElementById(`${errorContainerName}-errors`).innerHTML = '';
+document.getElementsByName("target-amplitude")[0].addEventListener("input", (e) => {
+	handleInputs(e);
 })
