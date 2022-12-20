@@ -5,6 +5,7 @@
 // ============================================================================
 //  Variables
 // ============================================================================
+const targetLine = {};
 let soundFilesDragOver = false;
 
 // ============================================================================
@@ -14,8 +15,9 @@ async function handleInputs(e) {
 	e.preventDefault();
 
 	const inputName = getInputName(e.target);
+	const parameterRole = inputName.split('-').shift();
 	const parameterName = inputName.split('-').pop();
-	const parameter = await window[`check${parameterName[0].toUpperCase() + parameterName.slice(1)}`](e);
+	const parameter = await window[`check${toTitleCase(parameterName)}`](e);
 
 	if (parameter.error.messages.length > 0) {
 		parameter.error.containerName = `${inputName}-errors`;
@@ -31,6 +33,16 @@ async function handleInputs(e) {
 	document.getElementById(`${inputName}-errors`).innerHTML = '';
 
 	// Handle value
+	if (parameterName === "file") {
+		const change = new Event("change");
+
+		displayFilePath(parameter.value[0], parameterRole);
+		document.getElementsByName(`${parameterRole}-path`)[0].dispatchEvent(change);
+	}
+
+	if (parameterName !== "file") {
+		window[`set${toTitleCase(parameterRole)}Line`](parameterName, parameter.value);
+	}
 }
 
 async function checkFile(e) {
@@ -51,8 +63,6 @@ async function checkFile(e) {
 	return setParameterData(errors, uploadedFiles);
 
 	// await createAudioPreview(uploadedFiles, fileRole);
-
-	// displayFilePath(uploadedFiles[0], fileRole);
 }
 
 function checkPath(e) {
@@ -81,10 +91,10 @@ function checkAmplitude(e) {
 	return setParameterData(errors, amplitude);
 }
 
-function setParameterData(error, value) {
+function setParameterData(errors, value) {
 	return {
 		error: {
-			messages: error
+			messages: errors
 		},
 		value: value,
 	}
@@ -257,6 +267,18 @@ function getFileInfo(file, fileRole) {
 
 }
 
+function setTargetLine(parameter, value) {
+	targetLine[parameter] = value;
+
+	if (targetLine.path) {
+		return targetLine;
+	}
+}
+
+function toTitleCase(str) {
+	return str[0].toUpperCase() + str.slice(1);
+}
+
 // ============================================================================
 //  Code to execute
 // ============================================================================
@@ -279,7 +301,7 @@ document.querySelectorAll(".drop-zone")[0].addEventListener("drop", async (e) =>
 document.querySelectorAll("[name*=\"file\"]")[0].addEventListener("change", async (e) => {
 	await handleInputs(e);
 })
-document.querySelector("[name*=\"path\"]").addEventListener("change", (e) => {
+document.querySelectorAll("[name*=\"path\"]")[0].addEventListener("change", (e) => {
 	handleInputs(e);
 })
 document.getElementsByName("target-amplitude")[0].addEventListener("input", (e) => {
