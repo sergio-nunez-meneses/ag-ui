@@ -6,11 +6,94 @@
 //  Variables
 // ============================================================================
 let soundFilesDragOver = false;
-let uploadedFiles;
 
 // ============================================================================
 //  Functions
 // ============================================================================
+async function handleInputs(e) {
+	e.preventDefault();
+
+	const inputName = getInputName(e.target);
+	const parameterName = inputName.split('-').pop();
+	const parameter = await window[`check${parameterName[0].toUpperCase() + parameterName.slice(1)}`](e);
+
+	if (parameter.error.messages.length > 0) {
+		parameter.error.containerName = `${inputName}-errors`;
+
+		createErrorList(parameter.error);
+
+		if (e.type === "change") {
+			e.target.value = '';
+		}
+
+		return;
+	}
+	document.getElementById(`${inputName}-errors`).innerHTML = '';
+
+	// Handle value
+}
+
+async function checkFile(e) {
+	const fileRole = getInputName(e.target).split('-').shift();
+	const uploadedFiles = await getFiles(e);
+	const errors = [];
+
+	if (fileRole === "target") {
+		if (uploadedFiles.length > 1) {
+			errors.push("Please, upload just one target audio file.");
+		}
+	}
+
+	if (!await isValidFileType(uploadedFiles)) {
+		errors.push("Please, upload files just of type audio.");
+	}
+
+	return setParameterData(errors, uploadedFiles);
+
+	// await createAudioPreview(uploadedFiles, fileRole);
+
+	// displayFilePath(uploadedFiles[0], fileRole);
+}
+
+function checkPath(e) {
+	const path = e.target.value;
+	const errors = [];
+
+	if (path === "") {
+		errors.push("Please, file path can't be empty.");
+	}
+	// TODO: Check for invalid characters
+
+	return setParameterData(errors, path);
+}
+
+function checkAmplitude(e) {
+	const amplitude = parseFloat(e.target.value);
+	const errors = [];
+
+	if (isNaN(amplitude)) {
+		errors.push("Please, amplitude value must be a number.");
+	}
+	if (amplitude < -70 || amplitude > 6) {
+		errors.push("Please, amplitude value must be between -70 and 6.");
+	}
+
+	return setParameterData(errors, amplitude);
+}
+
+function setParameterData(error, value) {
+	return {
+		error: {
+			messages: error
+		},
+		value: value,
+	}
+}
+
+function getInputName(input) {
+	return input.name ? input.name : input.id;
+}
+
 async function getFiles(e) {
 	switch (e.type) {
 		case "change":
@@ -149,6 +232,7 @@ function displayFilePath(file, fileRole) {
 
 	if (input.classList.contains("hidden")) {
 		input.classList.remove("hidden");
+		document.getElementById("target-path-errors").classList.remove("hidden");
 	}
 }
 
@@ -171,82 +255,6 @@ function getFileInfo(file, fileRole) {
 		name: fileName,
 	}
 
-}
-
-async function handleInputs(e) {
-	e.preventDefault();
-
-	const inputName = getInputName(e.target);
-	const parameter = inputName.split('-').pop();
-	const errors = {
-		containerName: `${inputName}-errors`,
-		messages: await window[`${parameter}Errors`](e),
-	}
-
-	if (errors.messages.length > 0) {
-		createErrorList(errors);
-
-		if (e.type === "change") {
-			e.target.value = '';
-		}
-
-		return;
-	}
-	document.getElementById(errors.containerName).innerHTML = '';
-
-	// Display value
-}
-
-async function fileErrors(e) {
-	const fileRole = getInputName(e.target).split('-').shift();
-	const errors = [];
-	uploadedFiles = await getFiles(e);
-
-	if (fileRole === "target") {
-		if (uploadedFiles.length > 1) {
-			errors.push("Please, upload just one target audio file.");
-		}
-	}
-
-	if (!await isValidFileType(uploadedFiles)) {
-		errors.push("Please, upload files just of type audio.");
-	}
-
-	return errors;
-
-	// await createAudioPreview(uploadedFiles, fileRole);
-
-	// displayFilePath(uploadedFiles[0], fileRole);
-}
-
-function pathErrors(e) {
-	const filePath = e.target.value;
-	const errors = [];
-
-	if (filePath === "") {
-		errors.push("Please, file path can't be empty.");
-	}
-	// TODO: Check for invalid characters
-
-	return errors;
-}
-
-function amplitudeErrors(e) {
-	const amplitude = parseFloat(e.target.value);
-	const errors = [];
-
-	if (isNaN(amplitude)) {
-		errors.push("Please, amplitude value must be a number.");
-	}
-	if (amplitude < -70 || amplitude > 6) {
-		errors.push("Please, amplitude value must be between -70 and 6.");
-	}
-
-	return errors;
-}
-
-function getInputName(input) {
-	return input.name ? input.name : input.id;
 }
 
 // ============================================================================
