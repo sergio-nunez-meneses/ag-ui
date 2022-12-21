@@ -32,12 +32,9 @@ async function handleInputs(e) {
 	}
 	document.getElementById(`${inputName}-errors`).innerHTML = '';
 
-	// Handle value
 	if (parameterName === "file") {
-		const change = new Event("change");
-
 		displayFilePath(parameter.value[0], parameterRole);
-		document.getElementsByName(`${parameterRole}-path`)[0].dispatchEvent(change);
+		document.getElementsByName(`${parameterRole}-path`)[0].dispatchEvent(new Event("change"));
 	}
 
 	if (parameterName !== "file") {
@@ -89,6 +86,20 @@ function checkAmplitude(e) {
 	}
 
 	return setParameterData(errors, amplitude);
+}
+
+function checkOffset(e) {
+	const offset = parseFloat(e.target.value);
+	const errors = [];
+
+	if (isNaN(offset)) {
+		errors.push("Please, offset value must be a number.");
+	}
+	if (offset < 0 || offset > 10) {
+		errors.push("Please, offset value must be between 0 and 10.");
+	}
+
+	return setParameterData(errors, offset);
 }
 
 function setParameterData(errors, value) {
@@ -271,7 +282,7 @@ function setTargetLine(parameter, value) {
 	targetLine[parameter] = value;
 
 	if (targetLine.path) {
-		return targetLine;
+		console.log(targetLine);
 	}
 }
 
@@ -305,5 +316,8 @@ document.querySelectorAll("[name*=\"path\"]")[0].addEventListener("change", (e) 
 	handleInputs(e);
 })
 document.getElementsByName("target-amplitude")[0].addEventListener("input", (e) => {
+	handleInputs(e);
+})
+document.getElementsByName("target-offset")[0].addEventListener("input", (e) => {
 	handleInputs(e);
 })
